@@ -10,8 +10,12 @@ import cStringIO
 import numpy as np
 from PIL import Image
 from sklearn import svm
+from sklearn import tree
 from sklearn import metrics
+from sklearn import neighbors
 from sklearn import cross_validation
+from NeuralNetwork import NeuralNetwork
+from sklearn.preprocessing import LabelBinarizer
 
 for i in range(1,50):
     url="http://10.249.11.1/rand.jsp?tSessionId="
@@ -54,26 +58,57 @@ for i in range(0,10):
         img = Image.open(name)
         x.append(np.array(img).flatten())
         y.append(i)
-x=np.vstack(x)
+X=np.vstack(x)
 y=np.vstack(y)
 
 #随机抽取生成训练集和测试集，其中训练集的比例为80%，测试集20%
-x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=0.3, random_state=1)
+X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.3, random_state=1)
 #查看训练集的行数
-x_train.shape,y_train.shape
+X_train.shape,y_train.shape
 
 #生成SVM分类模型,核函数 
-clf = svm.SVC(C=1.0,kernel='poly',degree=3, gamma='auto', coef0=0.0)
+svm_clf = svm.SVC(C=1.0,kernel='poly',degree=3, gamma='auto', coef0=0.0)
 #使用训练集对svm分类模型进行训练
-clf.fit(x_train, y_train.ravel())
+svm_clf.fit(X_train, y_train.ravel())
 #使用测试集衡量分类模型准确率
-clf.score(x_test, y_test)
+svm_clf.score(X_test, y_test)
 #对测试集数据进行预测
-predicted=clf.predict(x_test)
+predicted=svm_clf.predict(X_test)
 #查看测试集中的真实结果
 expected=y_test
 #生成准确率的混淆矩阵(Confusion matrix)
-metrics.confusion_matrix(expected, predicted)
+print metrics.confusion_matrix(expected, predicted)
+print metrics.classification_report(y_test, predicted)
 
+#Dtree
+Dtree_clf=tree.DecisionTreeClassifier(criterion='gini')
+Dtree_clf.fit(X_train, y_train)
+Dtree_clf.score(X_test, y_test)
+predicted=Dtree_clf.predict(X_test)
+expected=y_test
+print metrics.confusion_matrix(expected, predicted)
+print metrics.classification_report(y_test, predicted)
 
+#KNN
+knn_clf = neighbors.KNeighborsClassifier()
+knn_clf.fit(X_train, y_train)
+knn_clf.score(X_test, y_test)
+predicted=knn_clf.predict(X_test)
+expected=y_test
+print metrics.confusion_matrix(expected, predicted)
+print metrics.classification_report(y_test, predicted)
 
+#NeuralNetwork
+X -= X.min()  # normalize the values to bring them into the range 0-1
+X /= X.max()
+X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.3, random_state=1)
+nn_clf=NeuralNetwork([220,500,10],'logistic')
+labels_train = LabelBinarizer().fit_transform(y_train)
+labels_test = LabelBinarizer().fit_transform(y_test)
+nn_clf.fit(X_train, labels_train, epochs=5000)
+predicted = []
+for i in range(X_test.shape[0]):
+    o = nn_clf.predict(X_test[i])
+    predicted.append(np.argmax(o))
+print metrics.confusion_matrix(y_test, predicted)
+print metrics.classification_report(y_test, predicted)
