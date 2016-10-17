@@ -74,6 +74,8 @@ svm_clf.fit(X_train, y_train.ravel())
 svm_clf.score(X_test, y_test)
 #对测试集数据进行预测
 predicted=svm_clf.predict(X_test)
+
+svm_clf.predict(X_test)
 #查看测试集中的真实结果
 expected=y_test
 #生成准确率的混淆矩阵(Confusion matrix)
@@ -112,3 +114,30 @@ for i in range(X_test.shape[0]):
     predicted.append(np.argmax(o))
 print metrics.confusion_matrix(y_test, predicted)
 print metrics.classification_report(y_test, predicted)
+
+
+url="http://10.249.11.1/rand.jsp"
+request = urllib2.Request(url)
+res = urllib2.urlopen(request).read()
+image = Image.open(cStringIO.StringIO(res))
+#image.save('/home/xuefliang/VerificationCode/imgcode.jpg')
+img_grey = image.convert('L')
+threshold = 140
+table = []
+for i in range(256):
+    if i < threshold:
+        table.append(0)
+    else:
+        table.append(1)
+image= img_grey.point(table, '1')
+
+child_img_list = []
+number=[]
+for j in range(4):
+    x = 7 + j * (11 + 1)  # 左边距、单个图片宽度、间隔
+    y = 1
+    child_img = image.crop((x, y, x + 11, y + 20)) #单个图片的宽度和高度
+    child_img_list.append(child_img)
+    child_img_list[j].save('code.jpg')
+    number.append(svm_clf.predict(np.array(Image.open('code.jpg')).flatten())[0])
+np.asarray(number)
